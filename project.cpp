@@ -170,10 +170,18 @@ void input_layer_process(int num_neurons, int neurons_per_layer,
     printf("[LAYER %d] INPUT LAYER (PID: %d)\n", layer_id, getpid());
     printf("  Input neurons: %d\n", INPUT_NEURONS);
     
+    // Is process ke liye output file kholo (append mode for thread-safe writing)
+    FILE *local_result_file = fopen("output.txt", "a");
+    if (!local_result_file) {
+        fprintf(stderr, "ERROR: Cannot open output.txt\n");
+        exit(1);
+    }
+    
     // Is process ke liye input file kholo
     FILE *input_fp = fopen("input.txt", "r");
     if (!input_fp) {
         fprintf(stderr, "ERROR: Cannot open input.txt\n");
+        fclose(local_result_file);
         exit(1);
     }
     
@@ -203,13 +211,14 @@ void input_layer_process(int num_neurons, int neurons_per_layer,
     
     // Output file mein result write karo (mutex se protect karke)
     pthread_mutex_lock(&file_lock);
-    fprintf(result_file, "FORWARD PASS 1 - INPUT LAYER COMPUTATION\n");
-    fprintf(result_file, "Input: [%.6f, %.6f]\n", input_values[0], input_values[1]);
-    fprintf(result_file, "Output:\n");
+    fprintf(local_result_file, "FORWARD PASS 1 - INPUT LAYER COMPUTATION\n");
+    fprintf(local_result_file, "Input: [%.6f, %.6f]\n", input_values[0], input_values[1]);
+    fprintf(local_result_file, "Output:\n");
     for (int i = 0; i < num_neurons; i++) {
-        fprintf(result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
+        fprintf(local_result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
     }
-    fprintf(result_file, "\n");
+    fprintf(local_result_file, "\n");
+    fflush(local_result_file);  // Ensure data is written
     pthread_mutex_unlock(&file_lock);
     
     // Next layer ko pipe se output bhejo (IPC)
@@ -223,6 +232,7 @@ void input_layer_process(int num_neurons, int neurons_per_layer,
     free(weights);
     free(output);
     fclose(input_fp);
+    fclose(local_result_file);
     
     printf("  Output sent to next layer (processing complete)\n\n");
     exit(0);  // Process complete
@@ -234,10 +244,18 @@ void hidden_layer_process(int layer_num, int num_neurons,
     printf("[LAYER %d] HIDDEN LAYER (PID: %d)\n", layer_num, getpid());
     printf("  Neurons: %d\n", num_neurons);
     
+    // Is process ke liye output file kholo (append mode)
+    FILE *local_result_file = fopen("output.txt", "a");
+    if (!local_result_file) {
+        fprintf(stderr, "ERROR: Cannot open output.txt\n");
+        exit(1);
+    }
+    
     // Is process ke liye input file kholo
     FILE *input_fp = fopen("input.txt", "r");
     if (!input_fp) {
         fprintf(stderr, "ERROR: Cannot open input.txt\n");
+        fclose(local_result_file);
         exit(1);
     }
     
@@ -282,12 +300,13 @@ void hidden_layer_process(int layer_num, int num_neurons,
     
     // Output file mein result write karo
     pthread_mutex_lock(&file_lock);
-    fprintf(result_file, "FORWARD PASS 1 - HIDDEN LAYER %d COMPUTATION\n", layer_num);
-    fprintf(result_file, "Output:\n");
+    fprintf(local_result_file, "FORWARD PASS 1 - HIDDEN LAYER %d COMPUTATION\n", layer_num);
+    fprintf(local_result_file, "Output:\n");
     for (int i = 0; i < num_neurons; i++) {
-        fprintf(result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
+        fprintf(local_result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
     }
-    fprintf(result_file, "\n");
+    fprintf(local_result_file, "\n");
+    fflush(local_result_file);
     pthread_mutex_unlock(&file_lock);
     
     // Next layer ko pipe se output bhejo
@@ -302,6 +321,7 @@ void hidden_layer_process(int layer_num, int num_neurons,
     free(weights);
     free(output);
     fclose(input_fp);
+    fclose(local_result_file);
     
     printf("  Processing complete\n\n");
     exit(0);
@@ -313,10 +333,18 @@ void output_layer_process(int layer_num, int num_neurons,
     printf("[LAYER %d] OUTPUT LAYER (PID: %d)\n", layer_num, getpid());
     printf("  Neurons: %d\n", num_neurons);
     
+    // Is process ke liye output file kholo (append mode)
+    FILE *local_result_file = fopen("output.txt", "a");
+    if (!local_result_file) {
+        fprintf(stderr, "ERROR: Cannot open output.txt\n");
+        exit(1);
+    }
+    
     // Open input file for this process
     FILE *input_fp = fopen("input.txt", "r");
     if (!input_fp) {
         fprintf(stderr, "ERROR: Cannot open input.txt\n");
+        fclose(local_result_file);
         exit(1);
     }
     
@@ -360,12 +388,13 @@ void output_layer_process(int layer_num, int num_neurons,
                                            input_data, weights);
     
     pthread_mutex_lock(&file_lock);
-    fprintf(result_file, "FORWARD PASS 1 - OUTPUT LAYER COMPUTATION\n");
-    fprintf(result_file, "Output:\n");
+    fprintf(local_result_file, "FORWARD PASS 1 - OUTPUT LAYER COMPUTATION\n");
+    fprintf(local_result_file, "Output:\n");
     for (int i = 0; i < num_neurons; i++) {
-        fprintf(result_file, "  Output[%d] = %.6f\n", i, output[i]);
+        fprintf(local_result_file, "  Output[%d] = %.6f\n", i, output[i]);
     }
-    fprintf(result_file, "\n");
+    fprintf(local_result_file, "\n");
+    fflush(local_result_file);
     pthread_mutex_unlock(&file_lock);
     
     printf("  Processing complete\n\n");
@@ -383,10 +412,10 @@ void output_layer_process(int layer_num, int num_neurons,
     
     // Activation functions apply karo: f(x1) aur f(x2)
     pthread_mutex_lock(&file_lock);
-    fprintf(result_file, "BACKWARD PASS COMPUTATION\n");
-    fprintf(result_file, "Formula 1: f(x1) = (x^2 + x + 1) / 2\n");
-    fprintf(result_file, "Formula 2: f(x2) = (x^2 - x) / 2\n");
-    fprintf(result_file, "Results:\n");
+    fprintf(local_result_file, "BACKWARD PASS COMPUTATION\n");
+    fprintf(local_result_file, "Formula 1: f(x1) = (x^2 + x + 1) / 2\n");
+    fprintf(local_result_file, "Formula 2: f(x2) = (x^2 - x) / 2\n");
+    fprintf(local_result_file, "Results:\n");
     
     // Har neuron ke liye formulas apply karo
     for (int i = 0; i < num_neurons; i++) {
@@ -395,9 +424,10 @@ void output_layer_process(int layer_num, int num_neurons,
         double fx2 = ((val * val) - val) / 2.0;        // Formula 2
         
         backward_data[i] = fx1;  // Backward pass ke liye f(x1) use karo
-        fprintf(result_file, "  Neuron[%d]: f(x1)=%.6f | f(x2)=%.6f\n", i, fx1, fx2);
+        fprintf(local_result_file, "  Neuron[%d]: f(x1)=%.6f | f(x2)=%.6f\n", i, fx1, fx2);
     }
-    fprintf(result_file, "\n");
+    fprintf(local_result_file, "\n");
+    fflush(local_result_file);
     pthread_mutex_unlock(&file_lock);
     
     // Backward data ko pipe se previous layers ko bhejo
@@ -412,6 +442,7 @@ void output_layer_process(int layer_num, int num_neurons,
     free(output);
     free(backward_data);
     fclose(input_fp);
+    fclose(local_result_file);
     
     printf("  Backward computation complete\n\n");
     exit(0);
@@ -423,10 +454,18 @@ void second_input_layer_process(int num_neurons, int neurons_per_layer,
     printf("[PHASE] SECOND FORWARD PASS - INPUT LAYER (PID: %d)\n", getpid());
     printf("  Using backward outputs as new inputs...\n\n");
     
+    // Is process ke liye output file kholo (append mode)
+    FILE *local_result_file = fopen("output.txt", "a");
+    if (!local_result_file) {
+        fprintf(stderr, "ERROR: Cannot open output.txt\n");
+        exit(1);
+    }
+    
     // Open input file for this process
     FILE *input_fp = fopen("input.txt", "r");
     if (!input_fp) {
         fprintf(stderr, "ERROR: Cannot open input.txt\n");
+        fclose(local_result_file);
         exit(1);
     }
     
@@ -471,12 +510,13 @@ void second_input_layer_process(int num_neurons, int neurons_per_layer,
                                            backward_data, weights);
     
     pthread_mutex_lock(&file_lock);
-    fprintf(result_file, "FORWARD PASS 2 - LAYER 1 OUTPUT\n");
-    fprintf(result_file, "Output:\n");
+    fprintf(local_result_file, "FORWARD PASS 2 - LAYER 1 OUTPUT\n");
+    fprintf(local_result_file, "Output:\n");
     for (int i = 0; i < num_neurons; i++) {
-        fprintf(result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
+        fprintf(local_result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
     }
-    fprintf(result_file, "\n");
+    fprintf(local_result_file, "\n");
+    fflush(local_result_file);
     pthread_mutex_unlock(&file_lock);
     
     // Send output through pipe
@@ -490,6 +530,7 @@ void second_input_layer_process(int num_neurons, int neurons_per_layer,
     free(weights);
     free(output);
     fclose(input_fp);
+    fclose(local_result_file);
     
     exit(0);
 }
@@ -497,10 +538,18 @@ void second_input_layer_process(int num_neurons, int neurons_per_layer,
 // Second forward pass - hidden layer
 void second_hidden_layer_process(int layer_num, int num_neurons,
                                  int read_fd, int write_fd, int total_hidden_layers) {
+    // Is process ke liye output file kholo (append mode)
+    FILE *local_result_file = fopen("output.txt", "a");
+    if (!local_result_file) {
+        fprintf(stderr, "ERROR: Cannot open output.txt\n");
+        exit(1);
+    }
+    
     // Open input file for this process
     FILE *input_fp = fopen("input.txt", "r");
     if (!input_fp) {
         fprintf(stderr, "ERROR: Cannot open input.txt\n");
+        fclose(local_result_file);
         exit(1);
     }
     
@@ -556,12 +605,13 @@ void second_hidden_layer_process(int layer_num, int num_neurons,
                                            input_data, weights);
     
     pthread_mutex_lock(&file_lock);
-    fprintf(result_file, "FORWARD PASS 2 - LAYER %d OUTPUT\n", layer_num);
-    fprintf(result_file, "Output:\n");
+    fprintf(local_result_file, "FORWARD PASS 2 - LAYER %d OUTPUT\n", layer_num);
+    fprintf(local_result_file, "Output:\n");
     for (int i = 0; i < num_neurons; i++) {
-        fprintf(result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
+        fprintf(local_result_file, "  Neuron[%d] = %.6f\n", i, output[i]);
     }
-    fprintf(result_file, "\n");
+    fprintf(local_result_file, "\n");
+    fflush(local_result_file);
     pthread_mutex_unlock(&file_lock);
     
     // Send output through pipe
@@ -575,16 +625,25 @@ void second_hidden_layer_process(int layer_num, int num_neurons,
     free(weights);
     free(output);
     fclose(input_fp);
+    fclose(local_result_file);
     
     exit(0);
 }
 
 // Second forward pass - output layer
 void second_output_layer_process(int layer_num, int num_neurons, int read_fd, int total_hidden_layers) {
+    // Is process ke liye output file kholo (append mode)
+    FILE *local_result_file = fopen("output.txt", "a");
+    if (!local_result_file) {
+        fprintf(stderr, "ERROR: Cannot open output.txt\n");
+        exit(1);
+    }
+    
     // Open input file for this process
     FILE *input_fp = fopen("input.txt", "r");
     if (!input_fp) {
         fprintf(stderr, "ERROR: Cannot open input.txt\n");
+        fclose(local_result_file);
         exit(1);
     }
     
@@ -640,19 +699,21 @@ void second_output_layer_process(int layer_num, int num_neurons, int read_fd, in
                                            input_data, weights);
     
     pthread_mutex_lock(&file_lock);
-    fprintf(result_file, "FORWARD PASS 2 - FINAL OUTPUT LAYER\n");
-    fprintf(result_file, "Final Output:\n");
+    fprintf(local_result_file, "FORWARD PASS 2 - FINAL OUTPUT LAYER\n");
+    fprintf(local_result_file, "Final Output:\n");
     for (int i = 0; i < num_neurons; i++) {
-        fprintf(result_file, "  Output[%d] = %.6f\n", i, output[i]);
+        fprintf(local_result_file, "  Output[%d] = %.6f\n", i, output[i]);
     }
-    fprintf(result_file, "\n");
-    fprintf(result_file, "SIMULATION COMPLETED SUCCESSFULLY\n");
+    fprintf(local_result_file, "\n");
+    fprintf(local_result_file, "SIMULATION COMPLETED SUCCESSFULLY\n");
+    fflush(local_result_file);
     pthread_mutex_unlock(&file_lock);
     
     free(input_data);
     free(weights);
     free(output);
     fclose(input_fp);
+    fclose(local_result_file);
     
     exit(0);
 }
@@ -672,6 +733,7 @@ int main() {
     
     // Files open karo - input read karne ke liye aur output write karne ke liye
     FILE *input_fp = fopen("input.txt", "r");
+    // Main process opens output file in write mode (truncates file)
     result_file = fopen("output.txt", "w");
     
     if (!result_file) {
@@ -720,10 +782,13 @@ int main() {
     printf("[STATUS] Starting simulation with %d hidden layers, %d neurons/layer\n\n", 
            layers_count, neurons_count);
     
+    // Write header only once in main process (before fork)
     fprintf(result_file, "NEURAL NETWORK SIMULATION REPORT\n");
     fprintf(result_file, "=================================\n");
     fprintf(result_file, "Configuration: %d Hidden Layers | %d Neurons Per Layer\n\n", 
             layers_count, neurons_count);
+    fflush(result_file);  // Ensure header is written before fork
+    fclose(result_file);  // Close in main - children will open separately in append mode
     
     // ========== FORWARD PASS 1 ==========
     // Pehla forward pass - input se output tak
@@ -890,7 +955,7 @@ int main() {
     
     // Files close karo
     fclose(input_fp);
-    fclose(result_file);
+    // result_file already closed earlier (before fork)
     // Mutex destroy karo
     pthread_mutex_destroy(&file_lock);
     
