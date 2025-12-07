@@ -1,5 +1,6 @@
 NEURAL NETWORK SIMULATION REPORT
 =================================
+
 Configuration: 1 Hidden Layers | 2 Neurons Per Layer
 
 FORWARD PASS 1 - INPUT LAYER COMPUTATION
@@ -10,58 +11,44 @@ Output:
 
 NEURAL NETWORK SIMULATION REPORT
 =================================
-Configuration: 1 Hidden Layers | 2 Neurons Per Layer
 
-FORWARD PASS 1 - HIDDEN LAYER 1 COMPUTATION
-Output:
-  Neuron[0] = 0.446000
-  Neuron[1] = 0.602000
-
-NEURAL NETWORK SIMULATION REPORT
-=================================
 Configuration: 1 Hidden Layers | 2 Neurons Per Layer
 
 FORWARD PASS 1 - OUTPUT LAYER COMPUTATION
 Output:
-  Output[0] = 0.461600
-  Output[1] = 0.269800
+  Output[0] = 0.000000
+  Output[1] = 0.000000
 
 BACKWARD PASS COMPUTATION
 Formula 1: f(x1) = (x^2 + x + 1) / 2
 Formula 2: f(x2) = (x^2 - x) / 2
 Results:
-  Neuron[0]: f(x1)=0.837337 | f(x2)=-0.124263
-  Neuron[1]: f(x1)=0.671296 | f(x2)=-0.098504
+  Neuron[0]: f(x1)=0.500000 | f(x2)=-0.000000
+  Neuron[1]: f(x1)=0.500000 | f(x2)=-0.000000
 
 NEURAL NETWORK SIMULATION REPORT
 =================================
+
 Configuration: 1 Hidden Layers | 2 Neurons Per Layer
 
 FORWARD PASS 2 - LAYER 1 OUTPUT
 Output:
-  Neuron[0] = 0.670583
-  Neuron[1] = 0.972310
+  Neuron[0] = 0.450000
+  Neuron[1] = 0.650000
 
 NEURAL NETWORK SIMULATION REPORT
 =================================
-Configuration: 1 Hidden Layers | 2 Neurons Per Layer
 
-FORWARD PASS 2 - LAYER 1 OUTPUT
-Output:
-  Neuron[0] = 0.261520
-  Neuron[1] = 0.590099
-
-NEURAL NETWORK SIMULATION REPORT
-=================================
 Configuration: 1 Hidden Layers | 2 Neurons Per Layer
 
 FORWARD PASS 2 - FINAL OUTPUT LAYER
 Final Output:
-  Output[0] = 0.484819
-  Output[1] = 0.655143
+  Output[0] = 0.000000
+  Output[1] = 0.000000
 
 SIMULATION COMPLETED SUCCESSFULLY
 NEURAL NETWORK SIMULATION REPORT
 =================================
+
 Configuration: 1 Hidden Layers | 2 Neurons Per Layer
 
