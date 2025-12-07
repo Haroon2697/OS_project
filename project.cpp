@@ -1,29 +1,29 @@
-// Required header files - zaroori libraries
-#include <stdio.h>      // File operations ke liye (input/output)
-#include <stdlib.h>     // Memory allocation ke liye (malloc, free)
-#include <string.h>      // String operations ke liye
+// Required header files - zaroori libraries (C++ style)
+#include <cstdio>       // File operations ke liye (input/output)
+#include <cstdlib>      // Memory allocation ke liye (malloc, free)
+#include <cstring>      // String operations ke liye
 #include <pthread.h>    // Threads banane ke liye (neurons threads hain)
 #include <sys/wait.h>   // Process wait karne ke liye (waitpid)
 #include <unistd.h>      // System calls ke liye (fork, pipe, close)
 #include <semaphore.h>  // Synchronization ke liye
 #include <fcntl.h>      // File control ke liye
 #include <sys/stat.h>   // File status ke liye
-#include <errno.h>      // Error handling ke liye
+#include <cerrno>       // Error handling ke liye
 
 // Constants - fixed values
-#define MAX_NEURONS 100      // Maximum neurons per layer
-#define INPUT_NEURONS 2       // Input layer mein 2 neurons hain
-#define BUFFER_SIZE 8192     // Buffer size for data transfer
+const int MAX_NEURONS = 100;      // Maximum neurons per layer
+const int INPUT_NEURONS = 2;       // Input layer mein 2 neurons hain
+const int BUFFER_SIZE = 8192;     // Buffer size for data transfer
 
-// Thread data structure - har neuron thread ke liye data
-typedef struct {
+// Thread data structure - har neuron thread ke liye data (C++ struct)
+struct ComputeThread {
     int thread_id;              // Thread ka unique ID
     int input_size;             // Kitne inputs hain is neuron ko
     double *layer_inputs;       // Previous layer se aane wale inputs
     double *neuron_weights;     // Is neuron ke weights
     double *output_array;       // Output store karne ke liye array
     pthread_mutex_t *sync_lock; // Thread synchronization ke liye mutex
-} ComputeThread;
+};
 
 // Global variables - sab processes share karenge
 FILE *result_file;                              // Output file pointer
@@ -72,7 +72,7 @@ int validate_file_exists(const char *path) {
 // Har neuron thread yeh function execute karta hai
 // Yeh weighted sum calculate karta hai: sum = input1*weight1 + input2*weight2 + ...
 void *execute_neuron_task(void *params) {
-    ComputeThread *task = (ComputeThread *)params;
+    ComputeThread *task = static_cast<ComputeThread *>(params);
     double sum = 0.0;
     
     // Sab inputs ko unke weights se multiply karke sum mein add karo
@@ -93,7 +93,7 @@ void *execute_neuron_task(void *params) {
 double* launch_neuron_threads(int num_neurons, int input_size, 
                               double *input_data, double *weights) {
     // Results store karne ke liye memory allocate karo
-    double *results = (double *)malloc(num_neurons * sizeof(double));
+    double *results = static_cast<double *>(malloc(num_neurons * sizeof(double)));
     if (!results) {
         fprintf(stderr, "ERROR: Memory allocation failed\n");
         exit(1);
@@ -150,7 +150,7 @@ int read_from_pipe(int pipe_fd, double **data, int *count) {
     
     *count = n;
     // Memory allocate karo data store karne ke liye
-    *data = (double *)malloc(n * sizeof(double));
+    *data = static_cast<double *>(malloc(n * sizeof(double)));
     if (!*data) {
         return 0;  // Memory allocation fail
     }
@@ -189,7 +189,7 @@ void input_layer_process(int num_neurons, int neurons_per_layer,
     printf("  Values: [%.4f, %.4f]\n", input_values[0], input_values[1]);
     
     // Weights read karo (2 inputs * num_neurons weights)
-    double *weights = (double *)malloc(INPUT_NEURONS * num_neurons * sizeof(double));
+    double *weights = static_cast<double *>(malloc(INPUT_NEURONS * num_neurons * sizeof(double)));
     for (int i = 0; i < INPUT_NEURONS * num_neurons; i++) {
         if (!parse_double_with_comma(input_fp, &weights[i])) {
             fprintf(stderr, "ERROR: Insufficient weight data\n");
@@ -267,7 +267,7 @@ void hidden_layer_process(int layer_num, int num_neurons,
     close(read_fd);
     
     // Apne layer ke weights read karo
-    double *weights = (double *)malloc(input_count * num_neurons * sizeof(double));
+    double *weights = static_cast<double *>(malloc(input_count * num_neurons * sizeof(double)));
     for (int i = 0; i < input_count * num_neurons; i++) {
         if (!parse_double_with_comma(input_fp, &weights[i])) {
             fprintf(stderr, "ERROR: Insufficient weight data\n");
@@ -375,7 +375,7 @@ void output_layer_process(int layer_num, int num_neurons,
     printf("  Computing activation functions...\n\n");
     
     // Backward data store karne ke liye memory
-    double *backward_data = (double *)malloc(num_neurons * sizeof(double));
+    double *backward_data = static_cast<double *>(malloc(num_neurons * sizeof(double)));
     if (!backward_data) {
         fprintf(stderr, "ERROR: Memory allocation failed\n");
         exit(1);
@@ -457,7 +457,7 @@ void second_input_layer_process(int num_neurons, int neurons_per_layer,
     close(read_backward_fd);
     
     // Read weights for second pass
-    double *weights = (double *)malloc(backward_count * num_neurons * sizeof(double));
+    double *weights = static_cast<double *>(malloc(backward_count * num_neurons * sizeof(double)));
     for (int i = 0; i < backward_count * num_neurons; i++) {
         if (!parse_double_with_comma(input_fp, &weights[i])) {
             fprintf(stderr, "ERROR: Insufficient weight data for second pass\n");
